@@ -4,10 +4,19 @@
 #include <iostream>
 #include <string>
 #include <gurls++/gprwrapper.h>
+#include <yarp/os/Value.h>
+#include <gurls++/wrapper.h>
+#include <gurls++/kernelrlswrapper.h>
 
 
 using namespace gurls;
 using std::string;
+using yarp::os::Bottle;
+using yarp::os::Value;
+
+using std::cout;
+using std::cerr;
+using std::endl;
 
 namespace tacman {
 
@@ -15,20 +24,194 @@ namespace tacman {
 
 // Create a ForceReconstruction object for bodypart.
 // partName:
-ForceReconstruction::ForceReconstruction(std::string dataDirectory)
+ForceReconstruction::ForceReconstruction(yarp::os::ResourceFinder &rf)
 {
-    _dataDirectory = dataDirectory;
+    _gpOpts = NULL;
+
+    if(!init(rf))
+    {
+        cerr << "ForceReconstruction: failed to initialise." << endl;
+    }
 };
 
-bool ForceReconstruction::Train()
+// Initialise the module
+bool ForceReconstruction::init(yarp::os::ResourceFinder &rf)
+{
+
+
+    _dataDir = rf.check("dataDir", Value(""),
+                        "data directory (string)").asString();
+    _robotName = rf.check("robotName", Value("icub"),
+                          "robot name (string)").asString();
+    string moduleName = rf.check("moduleName", Value("force-reconstruction"),
+                                 "module name (string)").asString();
+
+    //
+    Bottle& bodyParts = rf.findGroup("BodyPart");
+    if(bodyParts.isNull())
+    {
+        cerr << "No body parts defined" << endl;
+        return false;
+    }
+
+
+
+    int nBodyParts = bodyParts.size() -1; // The first element is the group name
+    cout << "Number of body parts: " << nBodyParts << endl;
+
+
+    /*    for (int i = 1; i <= nBodyParts; i++) // The first element is the group name
+    {
+        cout << bodyParts.get(i).toString() << endl;
+
+        // Read the data
+        Bottle& subPart = rf.findGroup(bodyParts.get(i).asString());
+        cout << subPart.toString() << endl;
+    }
+*/
+
+    int i = 1;
+    Bottle& subPart = rf.findGroup(bodyParts.get(i).asString());
+    string fingerName = subPart.find("fingerName").asString();
+
+
+    if (fingerName.empty())
+    {
+        cerr << "No finger defined" << endl;
+        return false;
+    }
+
+    _startIndex = subPart.check("startIndex", Value(-1)).asInt();
+    if(_startIndex == -1)
+    {
+
+        cerr <<"Warning: no start index was defined using defalut value of 0" << endl;
+        _startIndex = 0;
+    }
+
+    string modelName = subPart.find("modelName").asString();
+    string modelFileName = "";
+    if (modelName.empty())
+    {
+        cerr << "Warning: no model file was provided. Creating empty model" << endl;
+        _gpOpts = new GurlsOptionsList(_dataDir + "/models/" + "defaultFinger", true);
+    }
+    else
+    {
+
+        modelFileName = _dataDir + "/models/" + fingerName + "/" + modelName;
+        _gpOpts = new GurlsOptionsList(modelFileName + ".bin", false);
+        try
+        {
+            _gpOpts->load(modelFileName);
+            cout << "loaded the file" << endl;
+        }
+        catch(...)
+        {
+
+            cerr << "failed to load the model file" << endl;
+            delete(_gpOpts);
+            cerr << "Warning: no model file was provided. Creating empty model" << endl;
+            _gpOpts = new GurlsOptionsList(_dataDir + "/models/" + "defaultFinger", true);
+        }
+
+        OptNumber *n = new OptNumber(0);
+        if(_gpOpts->hasOpt("todisk"))
+        {
+
+            _gpOpts->removeOpt("todisk");
+            _gpOpts->addOpt("todisk", n);
+
+
+        }
+        else
+        {
+            _gpOpts->addOpt("todisk", n);
+
+
+        }
+
+        if(n!=NULL){
+       delete(n);
+        n=NULL;}
+       _gpWrapper = new GPRWrapper<double>(modelFileName);
+
+       //////////////////////
+
+
+        _gpWrapper->setKernelType(GPRWrapper<double>::RBF);
+        _gpWrapper->setProblemType(GPRWrapper<double>::REGRESSION);
+        _gpWrapper->setNparams(20);
+        _gpWrapper->setNSigma(25);
+
+
+
+
+               gMat2D<double> Xtr, Xte, ytr, yte;
+
+               string trainingDataDir = _dataDir + "/trainingData/" + fingerName;
+               string XtrFileName = trainingDataDir + "/Xtr.csv";
+               string XteFileName = trainingDataDir + "/Xte.csv";
+               string ytrFileName = trainingDataDir + "/ytr.csv";
+               string yteFileName = trainingDataDir + "/yte.csv";
+
+               // Load data files
+               std::cout << "Loading data files..." << std::endl;
+               Xtr.readCSV(XtrFileName);
+               Xte.readCSV(XteFileName);
+               ytr.readCSV(ytrFileName);
+               yte.readCSV(yteFileName);
+
+               // Initialize model
+               std::cout << "Training model..." << std::endl;
+               _gpWrapper->train(Xtr, ytr);
+
+               _gpWrapper->saveModel(modelFileName);
+               // _gpWrapper->loadOpt(modelFileName);
+
+       /////////////////
+      /*  // Trying
+        if (_gpOpts->hasOpt("kernel"))
+        {
+            using  gurls::KernelRLSWrapper;
+
+            _gurlsWrap = new KernelRLSWrapper<double>("evaluation");
+            std::string kernelType = _gpOpts->getOptValue<OptString>("kernel.type");
+            if (kernelType=="rbf")
+                dynamic_cast<KernelRLSWrapper<double>*>(_gurlsWrap)->setKernelType(KernelWrapper<double>::RBF);
+        }
+
+        // end of tyring
+*/
+        _forceReconstPort.open("/" + moduleName + "/" + fingerName + "/force-CoP" );
+    }
+    return true;
+}
+
+ForceReconstruction::~ForceReconstruction()
+{
+
+    _forceReconstPort.close();
+    if(_gpOpts !=NULL)
+    {
+
+        delete(_gpOpts);
+        _gpOpts = NULL;
+    }
+}
+
+
+
+bool ForceReconstruction::Train(string fingerName)
 {
 
     gMat2D<double> Xtr, Xte, ytr, yte;
 
-    string XtrFileName = _dataDirectory + "/Xtr.csv";
-    string XteFileName = _dataDirectory + "/Xte.csv";
-    string ytrFileName = _dataDirectory + "/ytr.csv";
-    string yteFileName = _dataDirectory + "/yte.csv";
+    string trainingDataDir = _dataDir + "/trainingData/" + fingerName;
+    string XtrFileName = trainingDataDir + "/Xtr.csv";
+    string XteFileName = trainingDataDir + "/Xte.csv";
+    string ytrFileName = trainingDataDir + "/ytr.csv";
+    string yteFileName = trainingDataDir + "/yte.csv";
 
     string means_fileName("pred_gp_means.csv");
     string vars_fileName("pred_gp_vars.csv");
@@ -57,12 +240,23 @@ bool ForceReconstruction::Train()
     OptProcess* process2 = new OptProcess();
     *process2 << GURLS::load << GURLS::load <<  GURLS::load <<  GURLS::load
               <<GURLS::computeNsave << GURLS::computeNsave;
-    process->addOpt("two", process2);
+
+     process->addOpt("two", process2);
+   OptProcess* process3 = new OptProcess();
+    *process3 << GURLS::load << GURLS::load <<  GURLS::load <<  GURLS::load
+              <<GURLS::computeNsave << GURLS::computeNsave;
+
+
+    process->addOpt("eval", process3);
+
 
     // build an options' structure
-    GurlsOptionsList* opt = new GurlsOptionsList("GURLSgpr", true);
+    string modelFileName = _dataDir + "/models/" + fingerName + "/GURLSgpr";
+    GurlsOptionsList* opt = new GurlsOptionsList(modelFileName, true);
     opt->addOpt("seq", seq);
     opt->addOpt("processes", process);
+
+
 
     GURLS G;
 
@@ -70,26 +264,90 @@ bool ForceReconstruction::Train()
     string jobId1("two");
 
     // run gurls for training
-    //G.run(Xtr, ytr, *opt, jobId0);
-
-    GurlsOptionsList* opt2 = new GurlsOptionsList("GURLSgpr", false);
-    opt2->load("GURLSgpr.bin");
-    // run gurls for testing
+    G.run(Xtr, ytr, *opt, jobId0);
+     opt->save(opt->getName());
+    GurlsOptionsList* opt2 = new GurlsOptionsList(modelFileName, false);
+    opt2->load(modelFileName + ".bin");
+    //run gurls for testing
     G.run(Xte, yte, *opt2, jobId1);
 
 
 
     //        means = opt.pred.means;
-            GurlsOptionsList* pred = GurlsOptionsList::dynacast(opt2->getOpt("pred"));
-            GurlsOption *means_opt = pred->getOpt("means");
+    GurlsOptionsList* pred = GurlsOptionsList::dynacast(opt2->getOpt("pred"));
+    GurlsOption *means_opt = pred->getOpt("means");
 
-            const gMat2D<double>& means_mat = OptMatrix<gMat2D<double> >::dynacast(means_opt)->getValue();
+    const gMat2D<double>& means_mat = OptMatrix<gMat2D<double> >::dynacast(means_opt)->getValue();
 
-            means_mat.saveCSV(means_fileName);
+    means_mat.saveCSV(means_fileName);
+
+
+
+
+
 
     return true;
 }
 
+double ForceReconstruction::readOption(const std::string &main, const std::string &sub,  GurlsOptionsList* opt)
+{
+
+    //        means = opt.main.sub;
+    GurlsOptionsList* mainOpt = GurlsOptionsList::dynacast(opt->getOpt(main));
+    GurlsOption *subOpt = mainOpt->getOpt(sub);
+    const gMat2D<double>& supOpt_mat = OptMatrix<gMat2D<double> >::dynacast(mainOpt)->getValue();
+    return supOpt_mat(0,0); //TODO: bounds check!
+}
+
+void ForceReconstruction::onRead(Bottle &tactileBottle)
+{
+
+
+ printf("Time: % 3.0f\n",  (std::clock() - _time) / (double)(CLOCKS_PER_SEC / 1000));
+    _time = std::clock();
+
+
+    // finger data
+    gMat2D<double> tactileData;
+    gMat2D<double> dummy;
+    string jobId1("two");
+
+    dummy.resize(1,1);
+    dummy(0,0) = 0;
+    tactileData.resize(1,12);
+
+    for (int i = _startIndex; i < _startIndex + 12; i++)
+        tactileData(1,i-_startIndex) = tactileBottle.get(i).asDouble();
+
+
+
+////////
+    std::cout << "Testing..." << std::endl;
+            gMat2D<double> vars;
+            gMat2D<double>* means = _gpWrapper->eval(tactileData, vars);
+////////
+   //_gaussianProcess.run(tactileData, dummy, *_gpOpts, jobId1);
+   // OptMatrix<gMat2D<double> > *meansMatrix =   _gpOpts->getOptAs< OptMatrix<gMat2D<double> > >("pred.means");
+   //gMat2D<double> meansMatrix = (_gpOpts->getOptAs< OptMatrix<gMat2D<double> > >("pred.means"))->getValue();
+   //gMat2D<double> varsMatrix = (_gpOpts->getOptAs< OptMatrix<gMat2D<double> > >("pred.vars"))->getValue();
+
+
+//   gMat2D<double> meansMat = means->getData();
+   Bottle& outBottle = _forceReconstPort.prepare();
+   outBottle.clear();
+   outBottle.addDouble(*(means->getData()));
+   outBottle.addDouble(vars(0,0));
+
+  // outBottle.addDouble(meansMatrix(0,0));
+   //outBottle.addDouble(varsMatrix(0,0));
+
+   cout << "Writing: " << outBottle.toString() << endl;
+   _forceReconstPort.write(true);
+   _forceReconstPort.waitForWrite();
+
+
+
+}
 } // namespace tacman
 
 
