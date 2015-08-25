@@ -337,11 +337,11 @@ void ForceReconstruction::onRead(Bottle &tactileBottle)
    outBottle.clear();
    outBottle.addDouble(*(means->getData()));
    outBottle.addDouble(vars(0,0));
-
+   outBottle.addDouble(tactileBottle.get(12).asDouble());
   // outBottle.addDouble(meansMatrix(0,0));
    //outBottle.addDouble(varsMatrix(0,0));
 
-   cout << "Writing: " << outBottle.toString() << endl;
+   //cout << "Writing: " << outBottle.toString() << endl;
    _forceReconstPort.write(true);
    _forceReconstPort.waitForWrite();
 
