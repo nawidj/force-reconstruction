@@ -388,14 +388,7 @@ gMat2D<double>* ForceReconstruction::eval(const gMat2D<double> &X, gMat2D<double
 typedef double T;
 
     gMat2D<T> empty;
-
-    //NormTestZScore<T> normTask;
     PredGPRegr<T> predTask;
-
-
-    //GurlsOptionsList *normX = normTask.execute(X, empty, *(norm));
-
-    //gMat2D<T> &Xresc = normX->getOptValue<OptMatrix<gMat2D<T> > >("X");
 
     PredKernelTrainTest<T> predkTrainTest;
     opt->removeOpt("predkernel");
@@ -403,7 +396,6 @@ typedef double T;
 
     GurlsOptionsList *pred = predTask.execute(X, empty, *opt);
 
-    //delete normX;
 
     OptMatrix<gMat2D<T> >* pmeans = pred->getOptAs<OptMatrix<gMat2D<T> > >("means");
     pmeans->detachValue();
@@ -421,6 +413,14 @@ typedef double T;
 
     vars.resize(n, t);
 
+    for(int i = 0; i < n; i++)
+    {
+
+       for (int j = 0; j < t; j++)
+       {
+           vars(i,j) = predVars(i,j);
+       }
+    }
    // T* vars_it = vars.getData();
 
     /*for(unsigned long i=0; i<t; ++i, column+=n, ++std_it, ++mean_it, vars_it+=n)
