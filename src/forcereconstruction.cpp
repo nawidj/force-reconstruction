@@ -18,6 +18,7 @@ using std::cout;
 using std::cerr;
 using std::endl;
 
+
 namespace tacman {
 
 
@@ -91,6 +92,7 @@ bool ForceReconstruction::init(yarp::os::ResourceFinder &rf)
 
     string modelName = subPart.find("modelName").asString();
     string modelFileName = "";
+
     if (modelName.empty())
     {
         cerr << "Warning: no model file was provided. Creating empty model" << endl;
@@ -115,36 +117,39 @@ bool ForceReconstruction::init(yarp::os::ResourceFinder &rf)
             _gpOpts = new GurlsOptionsList(_dataDir + "/models/" + "defaultFinger", true);
         }
 
-        OptNumber *n = new OptNumber(0);
-        if(_gpOpts->hasOpt("todisk"))
-        {
+        //OptNumber *n = new OptNumber(0);
+        //if(_gpOpts->hasOpt("todisk"))
+        //{
 
-            _gpOpts->removeOpt("todisk");
-            _gpOpts->addOpt("todisk", n);
-
-
-        }
-        else
-        {
-            _gpOpts->addOpt("todisk", n);
+            //_gpOpts->removeOpt("todisk");
+            //_gpOpts->addOpt("todisk", new OptNumber(0));
 
 
-        }
+        //}
+        //else
+        //{
+         //   _gpOpts->addOpt("todisk", n);
 
-        if(n!=NULL){
-       delete(n);
-        n=NULL;}
+
+        //}
+
+       // if(n!=NULL){
+       //delete(n);
+       // n=NULL;}
+
+
        _gpWrapper = new GPRWrapper<double>(modelFileName);
+
 
        //////////////////////
 
-
+/*****
         _gpWrapper->setKernelType(GPRWrapper<double>::RBF);
         _gpWrapper->setProblemType(GPRWrapper<double>::REGRESSION);
         _gpWrapper->setNparams(20);
         _gpWrapper->setNSigma(25);
 
-
+******/
 
 
                gMat2D<double> Xtr, Xte, ytr, yte;
@@ -164,10 +169,23 @@ bool ForceReconstruction::init(yarp::os::ResourceFinder &rf)
 
                // Initialize model
                std::cout << "Training model..." << std::endl;
-               _gpWrapper->train(Xtr, ytr);
+               //_gpWrapper->train(Xtr, ytr);
 
-               _gpWrapper->saveModel(modelFileName);
-               // _gpWrapper->loadOpt(modelFileName);
+               //_gpWrapper->saveModel(modelFileName + ".bin");
+              /**  _gpWrapper->loadOpt(modelFileName + ".bin");
+
+
+
+                gurls::GurlsOptionsList opt(_gpWrapper->getOpt());
+
+                if(opt.hasOpt("meanX"))
+                    cout << "Has the opt" << endl; **/
+
+                //cout << opt.toString();
+                //_gpWrapper->
+               //cout << _gpOpts->toString() << endl;
+               // _gpWrapper->loadOpt(*_gpOpts);
+
 
        /////////////////
       /*  // Trying
@@ -323,8 +341,12 @@ void ForceReconstruction::onRead(Bottle &tactileBottle)
 
 ////////
     std::cout << "Testing..." << std::endl;
+    try{
             gMat2D<double> vars;
-            gMat2D<double>* means = _gpWrapper->eval(tactileData, vars);
+           //gMat2D<double>* means = _gpWrapper->eval(tactileData, vars);
+           // gurls::GurlsOptionsList opt(_gpWrapper->getOpt());
+            gMat2D<double>* means = this->eval(tactileData, vars, _gpOpts);
+  cout << "evaluated";
 ////////
    //_gaussianProcess.run(tactileData, dummy, *_gpOpts, jobId1);
    // OptMatrix<gMat2D<double> > *meansMatrix =   _gpOpts->getOptAs< OptMatrix<gMat2D<double> > >("pred.means");
@@ -344,9 +366,76 @@ void ForceReconstruction::onRead(Bottle &tactileBottle)
    //cout << "Writing: " << outBottle.toString() << endl;
    _forceReconstPort.write(true);
    _forceReconstPort.waitForWrite();
+    }
+    catch(gException& e)
+    {
+
+        cerr << e.getMessage() << endl;
+
+    }
+    catch(...)
+    {
+
+        cout << "something else went wrong!" << endl;
+    }
 
 
 
+}
+
+gMat2D<double>* ForceReconstruction::eval(const gMat2D<double> &X, gMat2D<double> &vars, gurls::GurlsOptionsList  *opt){
+
+typedef double T;
+
+    gMat2D<T> empty;
+
+    //NormTestZScore<T> normTask;
+    PredGPRegr<T> predTask;
+
+
+    //GurlsOptionsList *normX = normTask.execute(X, empty, *(norm));
+
+    //gMat2D<T> &Xresc = normX->getOptValue<OptMatrix<gMat2D<T> > >("X");
+
+    PredKernelTrainTest<T> predkTrainTest;
+    opt->removeOpt("predkernel");
+    opt->addOpt("predkernel", predkTrainTest.execute(X, empty,*opt));
+
+    GurlsOptionsList *pred = predTask.execute(X, empty, *opt);
+
+    //delete normX;
+
+    OptMatrix<gMat2D<T> >* pmeans = pred->getOptAs<OptMatrix<gMat2D<T> > >("means");
+    pmeans->detachValue();
+
+    gMat2D<T> &predMeans = pmeans->getValue();
+    gMat2D<T> &predVars = pred->getOptValue<OptMatrix<gMat2D<T> > >("vars");
+
+    const unsigned long n = predMeans.rows();
+    const unsigned long t = predMeans.cols();
+
+    T* column = predMeans.getData();
+    //const T* std_it = norm->getOptValue<OptMatrix<gMat2D<T> > >("stdY").getData();
+    //const T* mean_it = norm->getOptValue<OptMatrix<gMat2D<T> > >("meanY").getData();
+    //const T* pvars_it = predVars.getData();
+
+    vars.resize(n, t);
+
+   // T* vars_it = vars.getData();
+
+    /*for(unsigned long i=0; i<t; ++i, column+=n, ++std_it, ++mean_it, vars_it+=n)
+    {
+        scal(n, *std_it, column, 1);
+        axpy(n, (T)1.0, mean_it, 0, column, 1);
+
+        copy(vars_it, pvars_it, n);
+        scal(n, (*std_it)*(*std_it), vars_it, 1);
+    }
+    */
+
+    delete pred;
+
+    return &predMeans;
 }
 } // namespace tacman
 

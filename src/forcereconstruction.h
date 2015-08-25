@@ -9,12 +9,13 @@
 #include <gurls++/gurls.h>
 #include <gurls++/wrapper.h>
 #include <gurls++/gprwrapper.h>
+#include <gurls++/gmat2d.h>
 
 using yarp::os::Bottle;
 using yarp::os::BufferedPort;
 using yarp::os::ResourceFinder;
 using std::string;
-
+using gurls::gMat2D;
 
 namespace tacman {
 class ForceReconstruction: public BufferedPort<Bottle>
@@ -33,6 +34,8 @@ public:
 private:
     bool init(ResourceFinder& rf);
     double readOption(const string& main, const string& sub,  gurls::GurlsOptionsList *opt);
+    gMat2D<double>* eval(const gMat2D<double> &X, gMat2D<double> &vars, gurls::GurlsOptionsList *opt);
+
 private:
     //string _modelDir;
     string _dataDir;
