@@ -391,12 +391,14 @@ typedef double T;
     PredGPRegr<T> predTask;
 
     PredKernelTrainTest<T> predkTrainTest;
+
     opt->removeOpt("predkernel");
     opt->addOpt("predkernel", predkTrainTest.execute(X, empty,*opt));
 
     GurlsOptionsList *pred = predTask.execute(X, empty, *opt);
 
 
+    std::cout << pred->toString() << std::endl;
     OptMatrix<gMat2D<T> >* pmeans = pred->getOptAs<OptMatrix<gMat2D<T> > >("means");
     pmeans->detachValue();
 
@@ -406,10 +408,6 @@ typedef double T;
     const unsigned long n = predMeans.rows();
     const unsigned long t = predMeans.cols();
 
-    T* column = predMeans.getData();
-    //const T* std_it = norm->getOptValue<OptMatrix<gMat2D<T> > >("stdY").getData();
-    //const T* mean_it = norm->getOptValue<OptMatrix<gMat2D<T> > >("meanY").getData();
-    //const T* pvars_it = predVars.getData();
 
     vars.resize(n, t);
 
@@ -421,17 +419,7 @@ typedef double T;
            vars(i,j) = predVars(i,j);
        }
     }
-   // T* vars_it = vars.getData();
 
-    /*for(unsigned long i=0; i<t; ++i, column+=n, ++std_it, ++mean_it, vars_it+=n)
-    {
-        scal(n, *std_it, column, 1);
-        axpy(n, (T)1.0, mean_it, 0, column, 1);
-
-        copy(vars_it, pvars_it, n);
-        scal(n, (*std_it)*(*std_it), vars_it, 1);
-    }
-    */
 
     delete pred;
 
