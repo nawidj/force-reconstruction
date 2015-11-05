@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<portscope rows="1" columns="1" carrier="mcast">
+    <plot gridx="0"
+          gridy="0"
+          hspan="1"
+          vspan="1"
+          title="Force"
+          size="60"
+          minval="-0.5"
+          maxval="1"
+          bgcolor="LightSlateGrey">
+        <graph remote="/force-reconstruction/left_index/force-CoP"
+               index="1"
+               color="Red"
+               title="Force Z"
+               type="lines"
+               size="3" />
+    </plot>
+    
+   	
+</portscope>

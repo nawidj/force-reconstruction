@@ -16,17 +16,17 @@ int main(int argc, char* argv[])
 
 
     tacman::ForceReconstruction forceReconst(rf);
-    forceReconst.Train("left_index");
+    //forceReconst.Train("left_index");
     forceReconst.useCallback();
     forceReconst.open("/urgh");
 
-    yarp::os::Bottle& outBot = forceReconst.prepare();
-    outBot.clear();
-    outBot.addDouble(0);
-    outBot.addDouble(0);
-    forceReconst.waitForWrite();
+   // yarp::os::Bottle& outBot = forceReconst.prepare();
+   // outBot.clear();
+   // outBot.addDouble(0);
+   // outBot.addDouble(0);
+   // forceReconst.waitForWrite();
 
-    yarp::os::Network::connect("/icubSim/skin/left_hand_comp", "/urgh");
+    yarp::os::Network::connect("/icub/skin/left_hand_comp", "/urgh");
 
 
 

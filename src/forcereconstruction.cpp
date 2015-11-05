@@ -363,7 +363,7 @@ void ForceReconstruction::onRead(Bottle &tactileBottle)
   // outBottle.addDouble(meansMatrix(0,0));
    //outBottle.addDouble(varsMatrix(0,0));
 
-   //cout << "Writing: " << outBottle.toString() << endl;
+   cout << "Writing: " << outBottle.toString() << endl;
    _forceReconstPort.write(true);
    _forceReconstPort.waitForWrite();
     }
@@ -398,7 +398,7 @@ typedef double T;
     GurlsOptionsList *pred = predTask.execute(X, empty, *opt);
 
 
-    std::cout << pred->toString() << std::endl;
+    //std::cout << pred->toString() << std::endl;
     OptMatrix<gMat2D<T> >* pmeans = pred->getOptAs<OptMatrix<gMat2D<T> > >("means");
     pmeans->detachValue();
 
