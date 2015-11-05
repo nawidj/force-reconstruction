@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
 
 
     tacman::ForceReconstruction forceReconst(rf);
-    //forceReconst.Train("left_index");
+    forceReconst.Train("left_index");
     forceReconst.useCallback();
     forceReconst.open("/urgh");
 
