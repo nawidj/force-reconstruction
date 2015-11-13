@@ -6,8 +6,8 @@
           vspan="1"
           title="Force"
           size="60"
-          minval="-0.5"
-          maxval="1"
+          minval="-1"
+          maxval="2"
           bgcolor="LightSlateGrey">
         <graph remote="/force-reconstruction/left_index/force-CoP"
                index="1"

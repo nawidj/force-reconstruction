@@ -12,6 +12,7 @@ int main(int argc, char* argv[])
     yarp::os::ResourceFinder rf;
     rf.setVerbose(true);
     rf.setDefaultConfigFile("forceReconstruction.ini");
+    rf.setContext("force-reconstruction");
     rf.configure(argc, argv);
 
 

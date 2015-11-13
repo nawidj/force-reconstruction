@@ -151,7 +151,7 @@ bool ForceReconstruction::init(yarp::os::ResourceFinder &rf)
 
 ******/
 
-
+/*
                gMat2D<double> Xtr, Xte, ytr, yte;
 
                string trainingDataDir = _dataDir + "/trainingData/" + fingerName;
@@ -166,9 +166,9 @@ bool ForceReconstruction::init(yarp::os::ResourceFinder &rf)
                Xte.readCSV(XteFileName);
                ytr.readCSV(ytrFileName);
                yte.readCSV(yteFileName);
-
+*/
                // Initialize model
-               std::cout << "Training model..." << std::endl;
+              // std::cout << "Training model..." << std::endl;
                //_gpWrapper->train(Xtr, ytr);
 
                //_gpWrapper->saveModel(modelFileName + ".bin");
@@ -327,26 +327,27 @@ void ForceReconstruction::onRead(Bottle &tactileBottle)
 
     // finger data
     gMat2D<double> tactileData;
-    gMat2D<double> dummy;
+    double tactileFactor = 10;
+    //gMat2D<double> dummy;
     string jobId1("two");
 
-    dummy.resize(1,1);
-    dummy(0,0) = 0;
+    //dummy.resize(1,1);
+    //dummy(0,0) = 0;
     tactileData.resize(1,12);
 
     for (int i = _startIndex; i < _startIndex + 12; i++)
-        tactileData(1,i-_startIndex) = tactileBottle.get(i).asDouble();
+        tactileData(1,i-_startIndex) = tactileBottle.get(i).asDouble() * tactileFactor;
 
 
 
 ////////
-    std::cout << "Testing..." << std::endl;
+   // std::cout << "Testing..." << std::endl;
     try{
             gMat2D<double> vars;
            //gMat2D<double>* means = _gpWrapper->eval(tactileData, vars);
            // gurls::GurlsOptionsList opt(_gpWrapper->getOpt());
             gMat2D<double>* means = this->eval(tactileData, vars, _gpOpts);
-  cout << "evaluated";
+  //cout << "evaluated";
 ////////
    //_gaussianProcess.run(tactileData, dummy, *_gpOpts, jobId1);
    // OptMatrix<gMat2D<double> > *meansMatrix =   _gpOpts->getOptAs< OptMatrix<gMat2D<double> > >("pred.means");
@@ -363,7 +364,7 @@ void ForceReconstruction::onRead(Bottle &tactileBottle)
   // outBottle.addDouble(meansMatrix(0,0));
    //outBottle.addDouble(varsMatrix(0,0));
 
-   cout << "Writing: " << outBottle.toString() << endl;
+   //cout << "Writing: " << outBottle.toString() << endl;
    _forceReconstPort.write(true);
    _forceReconstPort.waitForWrite();
     }
