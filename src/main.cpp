@@ -27,8 +27,8 @@ int main(int argc, char* argv[])
    // outBot.addDouble(0);
    // forceReconst.waitForWrite();
 
-    yarp::os::Network::connect("/icub/skin/left_hand_comp", "/urgh");
-
+    //yarp::os::Network::connect("/icub/skin/left_hand_comp", "/urgh");
+    yarp::os::Network::connect("/icub/skin/right_hand_comp", "/urgh");
 
 
     while(true)

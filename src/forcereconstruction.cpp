@@ -327,7 +327,7 @@ void ForceReconstruction::onRead(Bottle &tactileBottle)
 
     // finger data
     gMat2D<double> tactileData;
-    double tactileFactor = 10;
+    double tactileFactor = 1;
     //gMat2D<double> dummy;
     string jobId1("two");
 
@@ -335,9 +335,13 @@ void ForceReconstruction::onRead(Bottle &tactileBottle)
     //dummy(0,0) = 0;
     tactileData.resize(1,12);
 
-    for (int i = _startIndex; i < _startIndex + 12; i++)
-        tactileData(1,i-_startIndex) = tactileBottle.get(i).asDouble() * tactileFactor;
+    double tactileSum = 0;
 
+    for (int i = _startIndex; i < _startIndex + 12; i++){
+        tactileData(1,i-_startIndex) = tactileBottle.get(i).asDouble() * tactileFactor;
+        tactileSum += tactileBottle.get(i).asDouble();
+    }
+    tactileSum /= 12;
 
 
 ////////
@@ -358,9 +362,9 @@ void ForceReconstruction::onRead(Bottle &tactileBottle)
 //   gMat2D<double> meansMat = means->getData();
    Bottle& outBottle = _forceReconstPort.prepare();
    outBottle.clear();
-   outBottle.addDouble(*(means->getData()));
+   outBottle.addDouble((*(means->getData()))*5);
    outBottle.addDouble(vars(0,0));
-   outBottle.addDouble(tactileBottle.get(12).asDouble());
+   outBottle.addDouble(tactileSum);
   // outBottle.addDouble(meansMatrix(0,0));
    //outBottle.addDouble(varsMatrix(0,0));
 
