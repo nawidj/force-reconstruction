@@ -4,6 +4,9 @@
 #include <yarp/os/ResourceFinder.h>
 #include <yarp/os/Network.h>
 #include <yarp/os/Bottle.h>
+#include <yarp/os/Value.h>
+
+using yarp::os::Value;
 
 int main(int argc, char* argv[])
 {
@@ -14,7 +17,11 @@ int main(int argc, char* argv[])
     rf.setDefaultConfigFile("forceReconstruction.ini");
     rf.setContext("force-reconstruction");
     rf.configure(argc, argv);
+    string robotName;
+    string whichHand;
 
+    robotName = rf.check("robotName", Value("icubSim")).asString();
+    whichHand = rf.check("whichHand", Value("right")).asString();
 
     tacman::ForceReconstruction forceReconst(rf);
     //forceReconst.Train("left_index");
@@ -28,7 +35,7 @@ int main(int argc, char* argv[])
    // forceReconst.waitForWrite();
 
     //yarp::os::Network::connect("/icub/skin/left_hand_comp", "/urgh");
-    yarp::os::Network::connect("/icub/skin/right_hand_comp", "/urgh");
+    yarp::os::Network::connect("/" + robotName + "/skin/" + whichHand + "_hand_comp", "/urgh");
 
 
     while(true)
