@@ -338,8 +338,14 @@ void ForceReconstruction::onRead(Bottle &tactileBottle)
     double tactileSum = 0;
 
     for (int i = _startIndex; i < _startIndex + 12; i++){
-        tactileData(1,i-_startIndex) = tactileBottle.get(i).asDouble() * tactileFactor;
-        tactileSum += tactileBottle.get(i).asDouble();
+        tactileData(1, i - _startIndex) = tactileBottle.get(i).asDouble();
+        if(tactileData(1, i - _startIndex) < 5)
+            tactileData(1,i - _startIndex) = 0;
+        else
+        {
+        tactileData(1,i - _startIndex) *= tactileFactor;
+        }
+        tactileSum += tactileData(1,i - _startIndex);
     }
     tactileSum /= 12;
 
