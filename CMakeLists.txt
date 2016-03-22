@@ -52,8 +52,9 @@ target_link_libraries(${PROJECTNAME} ${YARP_LIBRARIES} ${Gurls_LIBRARIES})
 
 install(TARGETS ${PROJECTNAME} DESTINATION bin)
 
-#install(DIRECTORY ./contexts/
-#  DESTINATION share/ICUBcontrib/contexts/${PROJECTNAME})
+# Figure it out later
+install(DIRECTORY ./contexts/
+  DESTINATION share/ICUBcontrib/contexts/${PROJECTNAME})
 
 
 
