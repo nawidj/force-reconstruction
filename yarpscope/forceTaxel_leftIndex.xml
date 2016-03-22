@@ -15,12 +15,6 @@
                title="Force Z"
                type="lines"
                size="3" />
-	<graph remote="/force-reconstruction/left_index/force-CoP"
-               index="2"
-               color="Black"
-               title="Sum"
-               type="lines"
-               size="3" />
     </plot>
 
 <plot gridx="0"

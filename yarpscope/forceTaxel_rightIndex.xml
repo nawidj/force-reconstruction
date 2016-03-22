@@ -23,7 +23,8 @@
                size="3" />
     </plot>
 
-<plot gridx="0"
+<plot 
+	  gridx="0"
           gridy="1"
           hspan="1"
           vspan="1"
@@ -105,7 +106,7 @@
                type="lines"
                size="2" />
 		   
-		</plot>
+</plot>
 
 
 
